@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeChat文章下载器</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .main-content.search-active {
+            grid-template-columns: 1fr 1.2fr;
+        }
+
+        .task-status-card {
+            grid-column: span 2;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .card h2 i {
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover h2 i {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .search-section {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .input-field:hover {
+            border-color: #cbd5e0;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .accounts-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 15px;
+            background: white;
+        }
+
+        .accounts-list:empty {
+            display: none !important;
+        }
+
+        .account-item {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .account-item:first-child {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .account-item:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .account-item:hover {
+            background-color: #f7fafc;
+        }
+
+        .account-item.selected {
+            background-color: #ebf8ff;
+            border-left: 4px solid #667eea;
+        }
+
+        .account-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .account-info h4 {
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .account-info p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #e2e8f0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.1) 50%, transparent 50%, transparent 75%, rgba(255,255,255,0.1) 75%);
+            background-size: 20px 20px;
+            animation: progress-stripes 1s linear infinite;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 5px;
+        }
+
+        @keyframes progress-stripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 0; }
+        }
+
+        .log-container {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            border-radius: 15px;
+            padding: 0;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            max-height: 350px;
+            overflow: hidden;
+            margin-top: 10px;
+            border: 1px solid #4a5568;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 20px 10px 20px;
+            color: #a0aec0;
+            flex-shrink: 0;
+        }
+
+        .log-content {
+            line-height: 1.6;
+            padding: 10px 20px 20px 20px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #2d3748;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+            animation: fadeInLog 0.3s ease-out;
+        }
+
+        .log-entry:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        @keyframes fadeInLog {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 配置区域样式 */
+        .config-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .config-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .config-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        /* 开关样式 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .switch-container {
+                gap: 8px;
+            }
+            
+            .switch-text {
+                font-size: 0.8rem;
+                flex-basis: 100%;
+                margin-top: 4px;
+            }
+        }
+
+        .switch-input {
+            display: none;
+        }
+
+        .switch-label {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .switch-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            border-radius: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .switch-input:checked + .switch-label .switch-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .switch-input:checked + .switch-label .switch-slider:before {
+            transform: translateX(26px);
+        }
+
+        .switch-text {
+            font-size: 0.85rem;
+            color: #718096;
+            font-style: italic;
+        }
+
+        .config-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .config-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .download-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            transform: translateY(-2px);
+        }
+
+        @media (min-width: 768px) {
+            .config-row {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .config-label {
+                min-width: 140px;
+                margin-bottom: 0;
+            }
+
+            .config-actions {
+                justify-content: center;
+            }
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-idle {
+            background-color: #718096;
+        }
+
+        .status-running {
+            background: radial-gradient(circle, #48bb78 0%, #38a169 100%);
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
+        }
+
+        .status-error {
+            background-color: #f56565;
+        }
+
+        @keyframes pulse {
+            0% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+            animation: slideInAlert 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%);
+            border-color: #48bb78;
+            color: #22543d;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #fed7d7 0%, #fbb6ce 100%);
+            border-color: #f56565;
+            color: #742a2a;
+        }
+
+        @keyframes slideInAlert {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Ollama配置模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            animation: modalSlideIn 0.3s ease-out forwards;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-content > * {
+            padding: 30px;
+        }
+        
+        .modal-content > .modal-header {
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        
+        .modal-content > .modal-actions {
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        
+        .modal-content > .ollama-config-grid,
+        .modal-content > .prompt-config-content,
+        .modal-content > .prompt-preview-content {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: scale(0.9) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #718096;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background-color: #f7fafc;
+            color: #4a5568;
+            transform: rotate(90deg);
+        }
+
+        .ollama-config-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .ollama-config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ollama-config-label {
+            font-weight: 600;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ollama-config-description {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: -5px;
+        }
+
+        .ollama-input {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .ollama-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .ollama-textarea {
+            min-height: 360px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* 系统提示词配置模态框样式 */
+        .prompt-config-container {
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .prompt-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .prompt-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .prompt-section-title i {
+            margin-right: 8px;
+            color: #667eea;
+        }
+
+        .prompt-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            background: white;
+        }
+
+        .rule-item, .category-item, .example-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .rule-input, .category-name, .category-desc, .example-text {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .example-category {
+            min-width: 120px;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .example-category:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .example-category:hover {
+            border-color: #a0aec0;
+        }
+
+        .btn-add {
+            padding: 6px 12px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add:hover {
+            background: #38a169;
+        }
+
+        .btn-remove {
+            padding: 6px 8px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-width: 32px;
+        }
+
+        .btn-remove:hover {
+            background: #e53e3e;
+        }
+
+        @media (max-width: 768px) {
+            .main-content,
+            .main-content.search-active {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .accounts-list {
+                max-height: 250px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fab fa-weixin"></i> WeChat文章智能分类下载器</h1>
+            <p>智能下载并分类微信公众号文章</p>
+        </div>
+
+        <div class="main-content">
+            <!-- 系统配置 -->
+            <div class="card">
+                <h2><i class="fas fa-cog"></i> 系统配置</h2>
+                <div class="config-container">
+                    <div class="config-row">
+                        <label for="tokenInput" class="config-label">
+                            <i class="fas fa-key"></i> API Token:
+                        </label>
+                        <input type="text" id="tokenInput" class="input-field" placeholder="请输入API Token..." value="">
+                    </div>
+                    <div class="config-row">
+                        <label for="outputFolderInput" class="config-label">
+                            <i class="fas fa-folder"></i> 下载文件夹:
+                        </label>
+                        <input type="text" id="outputFolderInput" class="input-field" placeholder="请输入下载文件保存路径..." value="C:\\Users\\27549\\OneDrive - whcqadc\\桌面\\test2">
+                    </div>
+                    <div class="config-row">
+                        <label for="classificationFolderInput" class="config-label">
+                            <i class="fas fa-folder-open"></i> 分类结果文件夹:
+                        </label>
+                        <input type="text" id="classificationFolderInput" class="input-field" placeholder="请输入分类结果保存路径..." value="C:\\Users\\27549\\OneDrive - whcqadc\\桌面\\classification_results">
+                    </div>
+                    <div class="config-row">
+                        <label for="categoryNameInput" class="config-label">
+                            <i class="fas fa-tags"></i> 大类名称:
+                        </label>
+                        <input type="text" id="categoryNameInput" class="input-field" placeholder="请输入大类名称（如：核心案例库）..." value="核心案例库">
+                    </div>
+                    <div class="config-row">
+                        <label for="enableClassificationInput" class="config-label">
+                            <i class="fas fa-toggle-on"></i> 启用分类功能:
+                        </label>
+                        <div class="switch-container">
+                            <input type="checkbox" id="enableClassificationInput" class="switch-input" checked>
+                            <label for="enableClassificationInput" class="switch-label">
+                                <span class="switch-slider"></span>
+                            </label>
+                            <span class="switch-text">开启后将对下载的文章进行智能分类</span>
+                        </div>
+                    </div>
+                    <div class="config-actions">
+                        <button class="btn btn-secondary" onclick="resetConfig()">
+                            <i class="fas fa-undo"></i> 重置默认
+                        </button>
+                        <button class="btn btn-primary" onclick="saveConfig()">
+                            <i class="fas fa-save"></i> 保存配置
+                        </button>
+                        <button class="btn btn-secondary" onclick="openOllamaConfig()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <i class="fas fa-robot"></i> Ollama配置
+                        </button>
+                        <button class="btn btn-secondary" onclick="openPromptConfig()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            <i class="fas fa-comments"></i> 提示词配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 搜索和选择公众号 -->
+            <div class="card">
+                <h2><i class="fas fa-search"></i> 搜索公众号</h2>
+                
+                <div class="alert alert-success" id="successAlert"></div>
+                <div class="alert alert-error" id="errorAlert"></div>
+                
+                <div class="search-section">
+                    <div class="input-group">
+                        <input type="text" id="searchInput" class="input-field" placeholder="请输入公众号名称..." onkeypress="handleSearchKeyPress(event)">
+                        <button id="searchBtn" class="btn btn-primary" onclick="searchAccounts()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                    </div>
+                    
+                    <div id="accountsList" class="accounts-list" style="display: none;"></div>
+                    
+                    <div class="download-actions">
+                        <button id="startBtn" class="btn btn-success" onclick="startDownload()" disabled>
+                            <i class="fas fa-play"></i> 开始下载
+                        </button>
+                        <button id="stopBtn" class="btn btn-danger" onclick="stopDownload()" disabled>
+                            <i class="fas fa-stop"></i> 停止下载
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务状态和统计 -->
+            <div class="card task-status-card">
+                <h2>
+                    <i class="fas fa-chart-line"></i> 任务状态
+                    <span class="status-indicator status-idle" id="statusIndicator"></span>
+                    <span id="statusText">空闲</span>
+                </h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalArticles">0</div>
+                        <div class="stat-label">总文章数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="processedArticles">0</div>
+                        <div class="stat-label">已处理</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="classifiedArticles">0</div>
+                        <div class="stat-label">已分类</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="currentBatch">0</div>
+                        <div class="stat-label">当前批次</div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div style="text-align: center; color: #718096; font-size: 0.9rem;" id="progressText">等待开始...</div>
+            </div>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="card log-container">
+            <div class="log-header">
+                <i class="fas fa-terminal"></i>
+                <span>实时日志</span>
+                <button class="btn" style="margin-left: auto; padding: 5px 10px; font-size: 0.8rem;" onclick="clearLogs()">
+                    <i class="fas fa-trash"></i> 清空
+                </button>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-entry">系统就绪，等待操作...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ollama配置模态框 -->
+    <div id="ollamaModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-robot"></i>
+                    Ollama服务配置
+                </h3>
+                <button class="modal-close" onclick="closeOllamaConfig()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="ollama-config-grid">
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-link"></i>
+                        服务地址 (OLLAMA_URL)
+                    </label>
+                    <div class="ollama-config-description">Ollama服务的访问地址，例如：http://localhost:11434</div>
+                    <input type="text" id="ollamaUrl" class="ollama-input" placeholder="http://localhost:11434" value="http://localhost:11434">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-brain"></i>
+                        模型ID (MODEL_ID)
+                    </label>
+                    <div class="ollama-config-description">使用的AI模型名称，例如：llama2、qwen等</div>
+                    <input type="text" id="modelId" class="ollama-input" placeholder="llama2" value="qwen2.5:7b">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-thermometer-half"></i>
+                        温度参数 (TEMPERATURE)
+                    </label>
+                    <div class="ollama-config-description">控制生成文本的随机性，范围0.0-2.0，值越高越随机</div>
+                    <input type="number" id="temperature" class="ollama-input" placeholder="0.7" value="0.7" min="0" max="2" step="0.1">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-clock"></i>
+                        超时时间 (TIMEOUT)
+                    </label>
+                    <div class="ollama-config-description">请求超时时间，单位：秒</div>
+                    <input type="number" id="timeout" class="ollama-input" placeholder="30" value="30" min="1">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-redo"></i>
+                        最大重试次数 (MAX_RETRIES)
+                    </label>
+                    <div class="ollama-config-description">请求失败时的最大重试次数</div>
+                    <input type="number" id="maxRetries" class="ollama-input" placeholder="3" value="3" min="0">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-text-width"></i>
+                        最大摘要长度 (MAX_SUMMARY_LENGTH)
+                    </label>
+                    <div class="ollama-config-description">生成摘要的最大字符数</div>
+                    <input type="number" id="maxSummaryLength" class="ollama-input" placeholder="500" value="500" min="100">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-cogs"></i>
+                        上下文长度 (num_ctx)
+                    </label>
+                    <div class="ollama-config-description">模型处理的上下文窗口大小</div>
+                    <input type="number" id="numCtx" class="ollama-input" placeholder="4096" value="4096" min="512">
+                </div>
+                
+                <div class="ollama-config-item">
+                    <label class="ollama-config-label">
+                        <i class="fas fa-ruler"></i>
+                        最小字符数阈值 (min_text_length)
+                    </label>
+                    <div class="ollama-config-description">文章内容少于此字符数时直接归为无关</div>
+                    <input type="number" id="minTextLength" class="ollama-input" placeholder="200" value="200" min="50">
+                </div>
+                
+
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="resetOllamaConfig()">
+                    <i class="fas fa-undo"></i> 重置默认
+                </button>
+                <button class="btn btn-primary" onclick="saveOllamaConfig()">
+                    <i class="fas fa-save"></i> 保存配置
+                </button>
+                <button class="btn btn-secondary" onclick="closeOllamaConfig()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统提示词配置模态框 -->
+    <div id="promptModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-comments"></i>
+                    系统提示词配置
+                </h3>
+                <button class="modal-close" onclick="closePromptConfig()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="prompt-config-content">
+                <!-- 角色定义 -->
+                <div class="prompt-section">
+                    <h4 class="prompt-section-title">
+                        <i class="fas fa-user-tie"></i> 角色定义
+                    </h4>
+                    <textarea id="roleDefinition" class="prompt-textarea" placeholder="请输入角色定义，例如：你是一名专注于线下快消品零售行业文章分类的专家...">你是一名专注于线下快消品零售行业文章分类的专家，负责为大卖场/超市/便利店企业筛选和归类具有实操价值的案例或经营规范类内容，严格按照以下规则执行：</textarea>
+                </div>
+
+                <!-- 无关判定规则 -->
+                <div class="prompt-section">
+                    <h4 class="prompt-section-title">
+                        <i class="fas fa-times-circle"></i> 无关判定规则
+                        <button class="btn-add" onclick="addRule()">
+                            <i class="fas fa-plus"></i> 添加规则
+                        </button>
+                    </h4>
+                    <div id="irrelevantRules">
+                        <div class="rule-item">
+                            <input type="text" class="rule-input" placeholder="请输入无关判定规则" value="文字主旨非线下快消品零售业强相关">
+                            <button class="btn-remove" onclick="removeRule(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分类标准 -->
+                <div class="prompt-section">
+                    <h4 class="prompt-section-title">
+                        <i class="fas fa-tags"></i> 分类标准
+                        <button class="btn-add" onclick="addCategory()">
+                            <i class="fas fa-plus"></i> 添加分类
+                        </button>
+                    </h4>
+                    <div id="categories">
+                        <div class="category-item">
+                            <input type="text" class="category-name" placeholder="分类名称" value="合规风控类">
+                            <input type="text" class="category-desc" placeholder="分类说明" value="风险事件处理/监管合规案例">
+                            <button class="btn-remove" onclick="removeCategory(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 参考例子 -->
+                <div class="prompt-section">
+                    <h4 class="prompt-section-title">
+                        <i class="fas fa-lightbulb"></i> 参考例子（可选）
+                        <button class="btn-add" onclick="addExample()">
+                            <i class="fas fa-plus"></i> 添加例子
+                        </button>
+                    </h4>
+                    <div id="examples">
+                        <div class="example-item">
+                            <select class="example-category">
+                                <option value="合规风控类">合规风控类</option>
+                            </select>
+                            <input type="text" class="example-text" placeholder="参考例子" value="胖东来"红内裤事件"，一场信任危机下的企业合规警示录">
+                            <button class="btn-remove" onclick="removeExample(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="resetPromptConfig()">
+                    <i class="fas fa-undo"></i> 重置默认
+                </button>
+                <button class="btn btn-info" onclick="previewPrompt()">
+                    <i class="fas fa-eye"></i> 预览提示词
+                </button>
+                <button class="btn btn-primary" onclick="savePromptConfig()">
+                    <i class="fas fa-save"></i> 保存配置
+                </button>
+                <button class="btn btn-secondary" onclick="closePromptConfig()">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let selectedAccount = null;
+        let isTaskRunning = false;
+        let statusPollingInterval = null;
+        
+        // 启动状态轮询
+        function startStatusPolling() {
+            if (statusPollingInterval) {
+                clearInterval(statusPollingInterval);
+            }
+            
+            statusPollingInterval = setInterval(async function() {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    
+                    // 更新任务状态
+                    if (data.running !== isTaskRunning) {
+                        setTaskStatus(data.running);
+                    }
+                    
+                    // 更新进度和统计
+                    updateProgress(data);
+                    updateStats(data);
+                    
+                    // 更新日志
+                    if (data.logs && data.logs.length > 0) {
+                        const logContent = document.getElementById('logContent');
+                        const currentLogs = logContent.querySelectorAll('.log-entry');
+                        
+                        // 检查日志是否有变化（数量或最后一条内容）
+                        let needUpdate = currentLogs.length !== data.logs.length;
+                        if (!needUpdate && data.logs.length > 0 && currentLogs.length > 0) {
+                            const lastCurrentLog = currentLogs[currentLogs.length - 1].textContent;
+                            const lastNewLog = data.logs[data.logs.length - 1];
+                            needUpdate = lastCurrentLog !== lastNewLog;
+                        }
+                        
+                        if (needUpdate) {
+                            logContent.innerHTML = '';
+                            data.logs.forEach(log => {
+                                const logEntry = document.createElement('div');
+                                logEntry.className = 'log-entry';
+                                logEntry.textContent = log;
+                                logContent.appendChild(logEntry);
+                            });
+                            
+                            // 保持最新日志可见
+                            logContent.scrollTop = logContent.scrollHeight;
+                        }
+                    }
+                } catch (error) {
+                    console.error('状态轮询失败:', error);
+                }
+            }, 1000); // 每秒轮询一次
+        }
+        
+        // 停止状态轮询
+        function stopStatusPolling() {
+            if (statusPollingInterval) {
+                clearInterval(statusPollingInterval);
+                statusPollingInterval = null;
+            }
+        }
+        
+        // 搜索公众号
+        async function searchAccounts() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) {
+                showAlert('请输入公众号名称', 'error');
+                return;
+            }
+            
+            const config = getConfig();
+            if (!config.token) {
+                showAlert('请先配置API Token', 'error');
+                return;
+            }
+            
+            const searchBtn = document.getElementById('searchBtn');
+            const originalText = searchBtn.innerHTML;
+            searchBtn.innerHTML = '<div class="loading"></div> 搜索中...';
+            searchBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        keyword: keyword,
+                        token: config.token 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAccounts(data.accounts);
+                    // 保存搜索状态到localStorage
+                    saveSearchState(keyword, data.accounts);
+                    showAlert(`找到 ${data.accounts.length} 个匹配的公众号`, 'success');
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('搜索失败: ' + error.message, 'error');
+            } finally {
+                searchBtn.innerHTML = originalText;
+                searchBtn.disabled = false;
+            }
+        }
+        
+        // 显示公众号列表
+        function displayAccounts(accounts) {
+            const accountsList = document.getElementById('accountsList');
+            const mainContent = document.querySelector('.main-content');
+            accountsList.innerHTML = '';
+            
+            if (accounts.length > 0) {
+                accounts.forEach(account => {
+                    const accountItem = document.createElement('div');
+                    accountItem.className = 'account-item';
+                    accountItem.onclick = () => selectAccount(account, accountItem);
+                    
+                    accountItem.innerHTML = `
+                        <img src="${account.round_head_img || '/static/default-avatar.png'}" alt="头像" class="account-avatar" onerror="this.src='/static/default-avatar.png'">
+                        <div class="account-info">
+                            <h4>${account.nickname}</h4>
+                            <p>FakeID: ${account.fakeid}</p>
+                        </div>
+                    `;
+                    
+                    accountsList.appendChild(accountItem);
+                });
+                
+                accountsList.style.display = 'block';
+                mainContent.classList.add('search-active');
+            } else {
+                accountsList.style.display = 'none';
+                mainContent.classList.remove('search-active');
+            }
+        }
+        
+        // 选择公众号
+        function selectAccount(account, element) {
+            // 移除之前的选中状态
+            document.querySelectorAll('.account-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 设置当前选中
+            element.classList.add('selected');
+            selectedAccount = account;
+            
+            // 启用开始按钮
+            document.getElementById('startBtn').disabled = false;
+            
+            // 保存选中状态
+            saveSelectedAccount(account);
+            
+            addLog(`已选择公众号: ${account.nickname}`);
+        }
+        
+        // 开始下载
+        async function startDownload() {
+            if (!selectedAccount) {
+                showAlert('请先选择公众号', 'error');
+                return;
+            }
+            
+            const config = getConfig();
+            if (!config.token) {
+                showAlert('请先配置API Token', 'error');
+                return;
+            }
+            
+            if (!config.outputFolder) {
+                showAlert('请先配置下载文件夹路径', 'error');
+                return;
+            }
+            
+            // 根据分类开关决定是否需要检查分类相关配置
+            if (config.enableClassification) {
+                if (!config.classificationFolder) {
+                    showAlert('请先配置分类结果文件夹路径', 'error');
+                    return;
+                }
+                
+                if (!config.categoryName) {
+                    showAlert('请先配置大类名称', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                // 根据分类开关决定调用哪个API
+                const apiEndpoint = config.enableClassification ? '/api/start_download' : '/api/start_download_only';
+                const requestBody = {
+                    account: selectedAccount,
+                    token: config.token,
+                    output_folder: config.outputFolder
+                };
+                
+                // 如果启用分类，添加分类相关参数
+                if (config.enableClassification) {
+                    requestBody.classification_folder = config.classificationFolder;
+                    requestBody.category_name = config.categoryName;
+                }
+                
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    setTaskStatus(true);
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('启动失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 停止下载
+        async function stopDownload() {
+            try {
+                const response = await fetch('/api/stop_download', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('停止失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 设置任务状态
+        function setTaskStatus(running) {
+            isTaskRunning = running;
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            if (running) {
+                statusIndicator.className = 'status-indicator status-running';
+                statusText.textContent = '运行中';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                statusIndicator.className = 'status-indicator status-idle';
+                statusText.textContent = '空闲';
+                startBtn.disabled = !selectedAccount;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        // 更新进度
+        function updateProgress(data) {
+            document.getElementById('currentBatch').textContent = data.current_batch || 0;
+            document.getElementById('totalArticles').textContent = data.total_articles || 0;
+            document.getElementById('processedArticles').textContent = data.processed_articles || 0;
+            
+            // 直接使用后端计算的进度值
+            const progress = data.progress || 0;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = `进度: ${progress}% (${data.processed_articles}/${data.total_articles})`;
+        }
+        
+        // 更新统计
+        function updateStats(data) {
+            document.getElementById('totalArticles').textContent = data.total_articles || 0;
+            document.getElementById('processedArticles').textContent = data.processed_articles || 0;
+            document.getElementById('classifiedArticles').textContent = data.classification_count || 0;
+        }
+        
+        // 自动滚动控制变量
+        let autoScrollEnabled = true;
+        let userScrollTimeout = null;
+        
+        // 添加日志
+        function addLog(message) {
+            const logContent = document.getElementById('logContent');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = message;
+            
+            logContent.appendChild(logEntry);
+            
+            // 如果启用自动滚动，则滚动到底部
+            if (autoScrollEnabled) {
+                setTimeout(() => {
+                    logContent.scrollTop = logContent.scrollHeight;
+                }, 10);
+            }
+            
+            // 限制日志条数
+            const logEntries = logContent.querySelectorAll('.log-entry');
+            if (logEntries.length > 100) {
+                logEntries[0].remove();
+            }
+        }
+        
+        // 清空日志
+        async function clearLogs() {
+            try {
+                const response = await fetch('/api/clear_logs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('logContent').innerHTML = '<div class="log-entry">日志已清空</div>';
+                } else {
+                    showAlert('清空日志失败: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('清空日志失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 保存搜索状态
+        function saveSearchState(keyword, accounts) {
+            const searchState = {
+                keyword: keyword,
+                accounts: accounts,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('search_state', JSON.stringify(searchState));
+        }
+        
+        // 保存选中的公众号
+        function saveSelectedAccount(account) {
+            localStorage.setItem('selected_account', JSON.stringify(account));
+        }
+        
+        // 恢复搜索状态
+        function restoreSearchState() {
+            try {
+                const searchStateStr = localStorage.getItem('search_state');
+                const selectedAccountStr = localStorage.getItem('selected_account');
+                
+                if (searchStateStr) {
+                    const searchState = JSON.parse(searchStateStr);
+                    // 永久保存搜索状态，不设置过期时间
+                    
+                    // 恢复搜索关键词
+                    document.getElementById('searchInput').value = searchState.keyword;
+                    
+                    // 恢复搜索结果
+                    if (searchState.accounts && searchState.accounts.length > 0) {
+                        displayAccounts(searchState.accounts);
+                        
+                        // 恢复选中状态
+                        if (selectedAccountStr) {
+                            const selectedAccount = JSON.parse(selectedAccountStr);
+                            // 找到对应的账号元素并设置选中状态
+                             setTimeout(() => {
+                                 const accountItems = document.querySelectorAll('.account-item');
+                                 accountItems.forEach(item => {
+                                     const accountInfo = item.querySelector('.account-info h4');
+                                     if (accountInfo && accountInfo.textContent === selectedAccount.nickname) {
+                                         item.classList.add('selected');
+                                         window.selectedAccount = selectedAccount;
+                                         document.getElementById('startBtn').disabled = false;
+                                     }
+                                 });
+                             }, 100);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('恢复搜索状态失败:', error);
+                // 清除损坏的数据
+                localStorage.removeItem('search_state');
+                localStorage.removeItem('selected_account');
+            }
+        }
+        
+        // 配置管理函数
+        function saveConfig() {
+            const token = document.getElementById('tokenInput').value.trim();
+            const outputFolder = document.getElementById('outputFolderInput').value.trim();
+            const classificationFolder = document.getElementById('classificationFolderInput').value.trim();
+            const categoryName = document.getElementById('categoryNameInput').value.trim();
+            
+            if (!token) {
+                showAlert('请输入API Token', 'error');
+                return;
+            }
+            
+            if (!outputFolder) {
+                showAlert('请输入下载文件夹路径', 'error');
+                return;
+            }
+            
+            if (!classificationFolder) {
+                showAlert('请输入分类结果文件夹路径', 'error');
+                return;
+            }
+            
+            if (!categoryName) {
+                showAlert('请输入大类名称', 'error');
+                return;
+            }
+            
+            // 调用后端API保存配置
+            saveAppConfig();
+        }
+        
+        async function resetConfig() {
+            try {
+                // 从后端获取默认配置
+                const response = await fetch('/api/app_config/default');
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.config) {
+                        const config = result.config;
+                        // 使用后端返回的默认配置值
+                        document.getElementById('tokenInput').value = config.api_token || '';
+                        document.getElementById('outputFolderInput').value = config.output_folder || 'D:\\\\智能分类\\\\原文章';
+                        document.getElementById('classificationFolderInput').value = config.classification_folder || 'D:\\\\智能分类';
+                        document.getElementById('categoryNameInput').value = config.category_name || '核心案例库';
+                        document.getElementById('enableClassificationInput').checked = config.enable_classification !== false;
+                        
+                        // 清除localStorage中的配置，让页面使用默认值
+                        localStorage.removeItem('wechat_token');
+                        localStorage.removeItem('wechat_output_folder');
+                        localStorage.removeItem('wechat_classification_folder');
+                        
+                        showAlert('配置已重置为默认值', 'success');
+                    } else {
+                        showAlert('获取默认配置失败: ' + (result.error || '未知错误'), 'error');
+                    }
+                } else {
+                    showAlert('获取默认配置失败', 'error');
+                }
+            } catch (error) {
+                console.error('重置配置时出错:', error);
+                showAlert('重置配置时出错: ' + error.message, 'error');
+            }
+        }
+        
+        function loadConfig() {
+            const savedToken = localStorage.getItem('wechat_token');
+            const savedOutputFolder = localStorage.getItem('wechat_output_folder');
+            const savedClassificationFolder = localStorage.getItem('wechat_classification_folder');
+            
+            if (savedToken) {
+                document.getElementById('tokenInput').value = savedToken;
+            }
+            
+            if (savedOutputFolder) {
+                document.getElementById('outputFolderInput').value = savedOutputFolder;
+            }
+            
+            if (savedClassificationFolder) {
+                document.getElementById('classificationFolderInput').value = savedClassificationFolder;
+            }
+        }
+        
+        function getConfig() {
+            return {
+                token: document.getElementById('tokenInput').value.trim(),
+                outputFolder: document.getElementById('outputFolderInput').value.trim(),
+                classificationFolder: document.getElementById('classificationFolderInput').value.trim(),
+                categoryName: document.getElementById('categoryNameInput').value.trim(),
+                enableClassification: document.getElementById('enableClassificationInput').checked
+            };
+        }
+
+        // 显示提示
+        function showAlert(message, type) {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alert = document.getElementById(alertId);
+            
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+        
+        // 搜索框回车事件
+        function handleSearchKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchAccounts();
+            }
+        }
+        
+        // 初始化日志容器滚动监听
+        function initLogScrollListener() {
+            const logContent = document.getElementById('logContent');
+            
+            logContent.addEventListener('scroll', function() {
+                const isAtBottom = logContent.scrollTop + logContent.clientHeight >= logContent.scrollHeight - 5;
+                
+                // 如果用户滚动到非底部位置，暂停自动滚动
+                if (!isAtBottom) {
+                    autoScrollEnabled = false;
+                    
+                    // 清除之前的定时器
+                    if (userScrollTimeout) {
+                        clearTimeout(userScrollTimeout);
+                    }
+                    
+                    // 3秒后恢复自动滚动
+                    userScrollTimeout = setTimeout(() => {
+                        autoScrollEnabled = true;
+                        // 如果此时在底部，立即滚动到最新位置
+                        const currentIsAtBottom = logContent.scrollTop + logContent.clientHeight >= logContent.scrollHeight - 5;
+                        if (currentIsAtBottom) {
+                            logContent.scrollTop = logContent.scrollHeight;
+                        }
+                    }, 3000);
+                } else {
+                    // 用户滚动到底部，立即恢复自动滚动
+                    autoScrollEnabled = true;
+                    if (userScrollTimeout) {
+                        clearTimeout(userScrollTimeout);
+                        userScrollTimeout = null;
+                    }
+                }
+            });
+        }
+        
+        // 加载应用基础配置
+        function loadAppConfig() {
+            fetch('/api/app_config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.config) {
+                        // 加载API token
+                        if (data.config.api_token) {
+                            document.getElementById('tokenInput').value = data.config.api_token;
+                        }
+                        // 加载输出文件夹
+                        if (data.config.output_folder) {
+                            document.getElementById('outputFolderInput').value = data.config.output_folder;
+                        }
+                        // 加载分类结果文件夹
+                        if (data.config.classification_folder) {
+                            document.getElementById('classificationFolderInput').value = data.config.classification_folder;
+                        }
+                        // 加载大类名称
+                        if (data.config.category_name) {
+                            document.getElementById('categoryNameInput').value = data.config.category_name;
+                        }
+                        // 加载分类开关状态
+                        if (data.config.enable_classification !== undefined) {
+                            document.getElementById('enableClassificationInput').checked = data.config.enable_classification;
+                        }
+                        console.log('应用基础配置加载成功');
+                    } else {
+                        console.log('使用默认应用基础配置');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载应用基础配置失败:', error);
+                });
+        }
+
+        // 保存应用基础配置
+        function saveAppConfig() {
+            const config = {
+                api_token: document.getElementById('tokenInput').value,
+                output_folder: document.getElementById('outputFolderInput').value,
+                classification_folder: document.getElementById('classificationFolderInput').value,
+                category_name: document.getElementById('categoryNameInput').value,
+                enable_classification: document.getElementById('enableClassificationInput').checked
+            };
+
+            fetch('/api/app_config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('应用基础配置保存成功');
+                    showAlert('系统配置已保存', 'success');
+                } else {
+                    console.error('保存应用基础配置失败:', data.error);
+                    showAlert(data.error || '保存配置失败', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('保存应用基础配置时发生错误:', error);
+                showAlert('保存配置失败: ' + error.message, 'error');
+            });
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initLogScrollListener();
+            loadConfig(); // 加载保存的配置
+            loadOllamaConfig(); // 加载Ollama配置
+            loadAppConfig(); // 加载应用基础配置
+            restoreSearchState(); // 恢复搜索状态
+            addLog('页面加载完成，系统就绪');
+            startStatusPolling(); // 启动状态轮询
+        });
+        
+        // 页面卸载时停止轮询
+        window.addEventListener('beforeunload', function() {
+            stopStatusPolling();
+        });
+
+        // 监听配置输入框变化，自动保存
+        document.addEventListener('DOMContentLoaded', function() {
+            const configInputs = ['tokenInput', 'outputFolderInput', 'classificationFolderInput'];
+            configInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('blur', saveAppConfig);
+                }
+            });
+        });
+        
+        // ========== Ollama配置相关函数 ==========
+        
+        // 打开Ollama配置模态框
+        function openOllamaConfig() {
+            loadOllamaConfig();
+            const modal = document.getElementById('ollamaModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+        
+        // 关闭Ollama配置模态框
+        function closeOllamaConfig() {
+            const modal = document.getElementById('ollamaModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto'; // 恢复背景滚动
+        }
+        
+        // 保存Ollama配置
+        async function saveOllamaConfig() {
+            const config = {
+                ollama_url: document.getElementById('ollamaUrl').value.trim(),
+                model_id: document.getElementById('modelId').value.trim(),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                timeout: parseInt(document.getElementById('timeout').value),
+                max_retries: parseInt(document.getElementById('maxRetries').value),
+                max_summary_length: parseInt(document.getElementById('maxSummaryLength').value),
+                num_ctx: parseInt(document.getElementById('numCtx').value),
+                min_text_length: parseInt(document.getElementById('minTextLength').value)
+            };
+            
+            // 验证配置
+            if (!config.ollama_url) {
+                showAlert('请输入Ollama服务地址', 'error');
+                return;
+            }
+            
+            if (!config.model_id) {
+                showAlert('请输入模型ID', 'error');
+                return;
+            }
+            
+            if (isNaN(config.temperature) || config.temperature < 0 || config.temperature > 2) {
+                showAlert('温度参数必须在0.0-2.0之间', 'error');
+                return;
+            }
+            
+            if (isNaN(config.timeout) || config.timeout < 1) {
+                showAlert('超时时间必须大于0', 'error');
+                return;
+            }
+            
+            if (isNaN(config.max_retries) || config.max_retries < 0) {
+                showAlert('最大重试次数不能小于0', 'error');
+                return;
+            }
+            
+            if (isNaN(config.max_summary_length) || config.max_summary_length < 100) {
+                showAlert('最大摘要长度不能小于100', 'error');
+                return;
+            }
+            
+            if (isNaN(config.num_ctx) || config.num_ctx < 512) {
+                showAlert('上下文长度不能小于512', 'error');
+                return;
+            }
+            
+            if (isNaN(config.min_text_length) || config.min_text_length < 50) {
+                showAlert('最小字符数阈值不能小于50', 'error');
+                return;
+            }
+            
+
+            
+            try {
+                const response = await fetch('/api/ollama_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 保存到localStorage
+                    localStorage.setItem('ollama_config', JSON.stringify(config));
+                    showAlert('Ollama配置已保存', 'success');
+                    closeOllamaConfig();
+                } else {
+                    showAlert(data.error || '保存配置失败', 'error');
+                }
+            } catch (error) {
+                showAlert('保存配置失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 重置Ollama配置为默认值
+        function resetOllamaConfig() {
+            document.getElementById('ollamaUrl').value = 'http://localhost:11434';
+            document.getElementById('modelId').value = 'qwen3:8b';
+            document.getElementById('temperature').value = '0.3';
+            document.getElementById('timeout').value = '80';
+            document.getElementById('maxRetries').value = '3';
+            document.getElementById('maxSummaryLength').value = '600';
+            document.getElementById('numCtx').value = '5120';
+            document.getElementById('minTextLength').value = '150';
+            showAlert('Ollama配置已重置为默认值', 'success');
+        }
+        
+        // 加载Ollama配置
+        async function loadOllamaConfig() {
+            try {
+                // 首先尝试从后端API获取配置
+                const response = await fetch('/api/ollama_config');
+                const data = await response.json();
+                
+                if (data.success && data.config) {
+                    const config = data.config;
+                    document.getElementById('ollamaUrl').value = config.ollama_url;
+                    document.getElementById('modelId').value = config.model_id;
+                    document.getElementById('temperature').value = config.temperature;
+                    document.getElementById('timeout').value = config.timeout;
+                    document.getElementById('maxRetries').value = config.max_retries;
+                    document.getElementById('maxSummaryLength').value = config.max_summary_length;
+                    document.getElementById('numCtx').value = config.num_ctx;
+                    document.getElementById('minTextLength').value = config.min_text_length || 200;
+                    return;
+                }
+            } catch (error) {
+                console.error('从后端加载Ollama配置失败:', error);
+            }
+            
+            // 如果后端获取失败，尝试从localStorage获取
+            const savedConfig = localStorage.getItem('ollama_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    document.getElementById('ollamaUrl').value = config.ollama_url || 'http://localhost:11434';
+                    document.getElementById('modelId').value = config.model_id || 'qwen3:8b';
+                    document.getElementById('temperature').value = config.temperature || 0.3;
+                    document.getElementById('timeout').value = config.timeout || 80;
+                    document.getElementById('maxRetries').value = config.max_retries || 3;
+                    document.getElementById('maxSummaryLength').value = config.max_summary_length || 600;
+                    document.getElementById('numCtx').value = config.num_ctx || 5120;
+                    document.getElementById('minTextLength').value = config.min_text_length || 1500;
+                } catch (error) {
+                    console.error('从localStorage加载Ollama配置失败:', error);
+                    // 如果都失败了，使用默认值
+                    resetOllamaConfig();
+                }
+            } else {
+                // 如果没有保存的配置，使用默认值
+                resetOllamaConfig();
+            }
+        }
+        
+        // 获取当前Ollama配置
+        function getOllamaConfig() {
+            return {
+                ollama_url: document.getElementById('ollamaUrl').value.trim(),
+                model_id: document.getElementById('modelId').value.trim(),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                timeout: parseInt(document.getElementById('timeout').value),
+                max_retries: parseInt(document.getElementById('maxRetries').value),
+                max_summary_length: parseInt(document.getElementById('maxSummaryLength').value),
+                num_ctx: parseInt(document.getElementById('numCtx').value),
+                min_text_length: parseInt(document.getElementById('minTextLength').value)
+            };
+        }
+        
+        // 点击模态框背景关闭
+        document.getElementById('ollamaModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeOllamaConfig();
+            }
+        });
+        
+        // ========== 系统提示词配置相关函数 ==========
+        
+        // 打开系统提示词配置模态框
+        function openPromptConfig() {
+            loadPromptConfig();
+            const modal = document.getElementById('promptModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭系统提示词配置模态框
+        function closePromptConfig() {
+            const modal = document.getElementById('promptModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 添加无关判定规则
+        function addRule() {
+            const container = document.getElementById('irrelevantRules');
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'rule-item';
+            ruleDiv.innerHTML = `
+                <input type="text" class="rule-input" placeholder="请输入无关判定规则...">
+                <button class="btn-remove" onclick="removeRule(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(ruleDiv);
+        }
+        
+        // 删除无关判定规则
+        function removeRule(button) {
+            button.parentElement.remove();
+        }
+        
+        // 添加分类标准
+        function addCategory() {
+            const container = document.getElementById('categories');
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category-item';
+            categoryDiv.innerHTML = `
+                <input type="text" class="category-name" placeholder="分类名称">
+                <input type="text" class="category-desc" placeholder="分类说明">
+                <button class="btn-remove" onclick="removeCategory(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(categoryDiv);
+            updateExampleCategories();
+        }
+        
+        // 删除分类标准
+        function removeCategory(button) {
+            button.parentElement.remove();
+        }
+        
+        // 添加参考例子
+        function addExample() {
+            const container = document.getElementById('examples');
+            const exampleDiv = document.createElement('div');
+            exampleDiv.className = 'example-item';
+            exampleDiv.innerHTML = `
+                <select class="example-category">
+                    <option value="">选择分类</option>
+                </select>
+                <input type="text" class="example-text" placeholder="例子内容">
+                <button class="btn-remove" onclick="removeExample(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(exampleDiv);
+            updateExampleCategories();
+        }
+        
+        // 删除参考例子
+        function removeExample(button) {
+            button.parentElement.remove();
+        }
+        
+        // 更新例子的分类选项
+        function updateExampleCategories() {
+            const categories = document.querySelectorAll('.category-name');
+            const selects = document.querySelectorAll('.example-category');
+            
+            selects.forEach(select => {
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">选择分类</option>';
+                
+                categories.forEach(category => {
+                    if (category.value.trim()) {
+                        const option = document.createElement('option');
+                        option.value = category.value.trim();
+                        option.textContent = category.value.trim();
+                        if (option.value === currentValue) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    }
+                });
+            });
+        }
+        
+        // 预览生成的系统提示词
+        async function previewPrompt() {
+            try {
+                // 先保存当前配置到后端
+                const roleDefinition = document.getElementById('roleDefinition').value.trim();
+                const rules = Array.from(document.querySelectorAll('.rule-input')).map(input => input.value.trim()).filter(rule => rule);
+                const categories = Array.from(document.querySelectorAll('.category-item')).map(item => {
+                    const name = item.querySelector('.category-name').value.trim();
+                    const desc = item.querySelector('.category-desc').value.trim();
+                    return name && desc ? { name, desc } : null;
+                }).filter(cat => cat);
+                const examples = Array.from(document.querySelectorAll('.example-item')).map(item => {
+                    const text = item.querySelector('.example-text').value.trim();
+                    const category = item.querySelector('.example-category').value.trim();
+                    return text && category ? { text, category } : null;
+                }).filter(ex => ex);
+                
+                const config = {
+                    role_definition: roleDefinition,
+                    irrelevant_rules: rules,
+                    categories: categories,
+                    examples: examples
+                };
+                
+                // 调用后端API获取完整的系统提示词
+                const response = await fetch('/api/generate_prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 使用模态框显示完整的系统提示词
+                    showPromptPreview(data.system_prompt);
+                } else {
+                    alert('获取系统提示词失败: ' + (data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('预览系统提示词失败: ' + error.message);
+            }
+        }
+        
+        // 显示系统提示词预览模态框
+        function showPromptPreview(prompt) {
+            // 创建预览模态框
+            const modal = document.createElement('div');
+            modal.className = 'modal show';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">
+                            <i class="fas fa-eye"></i>
+                            系统提示词预览
+                        </h3>
+                        <button class="modal-close" onclick="closePromptPreview()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="prompt-preview-content">
+                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 14px; line-height: 1.5; height: 100%;">${prompt}</div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closePromptPreview()">
+                            <i class="fas fa-times"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 点击背景关闭
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closePromptPreview();
+                }
+            });
+        }
+        
+        // 关闭系统提示词预览模态框
+        function closePromptPreview() {
+            const modal = document.querySelector('.modal.show:last-of-type');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // 生成系统提示词
+        function generateSystemPrompt() {
+            const roleDefinition = document.getElementById('roleDefinition').value.trim();
+            const rules = Array.from(document.querySelectorAll('.rule-input')).map(input => input.value.trim()).filter(rule => rule);
+            const categories = Array.from(document.querySelectorAll('.category-item')).map(item => {
+                const name = item.querySelector('.category-name').value.trim();
+                const desc = item.querySelector('.category-desc').value.trim();
+                return name && desc ? { name, desc } : null;
+            }).filter(cat => cat);
+            const examples = Array.from(document.querySelectorAll('.example-item')).map(item => {
+                const text = item.querySelector('.example-text').value.trim();
+                const category = item.querySelector('.example-category').value.trim();
+                return text && category ? { text, category } : null;
+            }).filter(ex => ex);
+            
+            let prompt = roleDefinition || '你是一名专业的文章分类专家，负责对文章进行准确分类，严格按照以下规则执行：';
+            prompt += '\n\n【无关判定规则】\n';
+            
+            if (rules.length > 0) {
+                rules.forEach((rule, index) => {
+                    prompt += `${index + 1}.${rule} → 无关\n`;
+                });
+            } else {
+                prompt += '1.文字主旨非相关领域 → 无关\n';
+            }
+            
+            prompt += '\n【分类标准】\n';
+            if (categories.length > 0) {
+                categories.forEach(cat => {
+                    prompt += `${cat.name}：${cat.desc}\n`;
+                });
+            } else {
+                prompt += '通用分类：通用内容分类\n';
+            }
+            
+            prompt += '\n【输出要求】\n';
+            prompt += '-仅输出以下';
+            const categoryNames = categories.length > 0 ? categories.map(cat => cat.name) : ['通用分类'];
+            prompt += `${categoryNames.length + 1}种之一（不加任何解释）： ${categoryNames.join('/')}/无关\n`;
+            
+            if (examples.length > 0) {
+                prompt += '\n【参考例子】\n';
+                examples.forEach(ex => {
+                    prompt += `"${ex.text}" → ${ex.category}\n`;
+                });
+            }
+            
+            return prompt;
+        }
+        
+        // 保存系统提示词配置
+        async function savePromptConfig() {
+            const roleDefinition = document.getElementById('roleDefinition').value.trim();
+            const rules = Array.from(document.querySelectorAll('.rule-input')).map(input => input.value.trim()).filter(rule => rule);
+            const categories = Array.from(document.querySelectorAll('.category-item')).map(item => {
+                const name = item.querySelector('.category-name').value.trim();
+                const desc = item.querySelector('.category-desc').value.trim();
+                return name && desc ? { name, desc } : null;
+            }).filter(cat => cat);
+            const examples = Array.from(document.querySelectorAll('.example-item')).map(item => {
+                const text = item.querySelector('.example-text').value.trim();
+                const category = item.querySelector('.example-category').value.trim();
+                return text && category ? { text, category } : null;
+            }).filter(ex => ex);
+            
+            if (!roleDefinition) {
+                showAlert('请输入角色定义', 'error');
+                return;
+            }
+            
+            if (rules.length === 0) {
+                showAlert('请至少添加一条无关判定规则', 'error');
+                return;
+            }
+            
+            if (categories.length === 0) {
+                showAlert('请至少添加一个分类标准', 'error');
+                return;
+            }
+            
+            const config = {
+                role_definition: roleDefinition,
+                irrelevant_rules: rules,
+                categories: categories,
+                examples: examples,
+                system_prompt: generateSystemPrompt()
+            };
+            
+            try {
+                const response = await fetch('/api/prompt_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('prompt_config', JSON.stringify(config));
+                    showAlert('系统提示词配置已保存', 'success');
+                    closePromptConfig();
+                } else {
+                    showAlert(data.error || '保存配置失败', 'error');
+                }
+            } catch (error) {
+                showAlert('保存配置失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 重置系统提示词配置为默认值
+        async function resetPromptConfig() {
+            try {
+                const response = await fetch('/api/prompt_config/default');
+                const data = await response.json();
+                
+                if (data.success && data.config) {
+                    const config = data.config;
+                    
+                    // 重置角色定义
+                    document.getElementById('roleDefinition').value = config.role_definition || '';
+                    
+                    // 清空现有规则并添加默认规则
+                    const rulesContainer = document.getElementById('irrelevantRules');
+                    rulesContainer.innerHTML = '';
+                    if (config.irrelevant_rules && Array.isArray(config.irrelevant_rules)) {
+                        config.irrelevant_rules.forEach(rule => {
+                            const ruleDiv = document.createElement('div');
+                            ruleDiv.className = 'rule-item';
+                            ruleDiv.innerHTML = `
+                                <input type="text" class="rule-input" value="${rule}">
+                                <button type="button" class="btn-remove" onclick="removeRule(this)">×</button>
+                            `;
+                            rulesContainer.appendChild(ruleDiv);
+                        });
+                    }
+                    
+                    // 清空现有分类并添加默认分类
+                    const categoriesContainer = document.getElementById('categories');
+                    categoriesContainer.innerHTML = '';
+                    if (config.categories && Array.isArray(config.categories)) {
+                        config.categories.forEach(category => {
+                            const categoryDiv = document.createElement('div');
+                            categoryDiv.className = 'category-item';
+                            categoryDiv.innerHTML = `
+                                <input type="text" class="category-name">
+                                <input type="text" class="category-desc">
+                                <button type="button" class="btn-remove" onclick="removeCategory(this)">×</button>
+                            `;
+                            const nameInput = categoryDiv.querySelector('.category-name');
+                            const descInput = categoryDiv.querySelector('.category-desc');
+                            nameInput.value = category.name;
+                            descInput.value = category.desc;
+                            categoriesContainer.appendChild(categoryDiv);
+                        });
+                    }
+                    
+                    // 清空现有例子并添加默认例子
+                    const examplesContainer = document.getElementById('examples');
+                    examplesContainer.innerHTML = '';
+                    if (config.examples && Array.isArray(config.examples)) {
+                        config.examples.forEach(example => {
+                            const exampleDiv = document.createElement('div');
+                            exampleDiv.className = 'example-item';
+                            exampleDiv.innerHTML = `
+                                <select class="example-category">
+                                    <option value="">选择分类</option>
+                                </select>
+                                <input type="text" class="example-text" placeholder="示例文本">
+                                <button type="button" class="btn-remove" onclick="removeExample(this)">×</button>
+                            `;
+                            const textInput = exampleDiv.querySelector('.example-text');
+                            const categorySelect = exampleDiv.querySelector('.example-category');
+                            textInput.value = example.text;
+                            examplesContainer.appendChild(exampleDiv);
+                            
+                            // 更新分类选项并设置选中值
+                            updateExampleCategories();
+                            categorySelect.value = example.category;
+                        });
+                    }
+                    
+                    updateExampleCategories();
+                    showAlert('系统提示词配置已重置为默认值', 'success');
+                } else {
+                    showAlert('获取默认配置失败：' + (data.error || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('恢复默认配置时发生错误:', error);
+                showAlert('恢复默认配置失败，请检查网络连接', 'error');
+            }
+        }
+        
+        // 加载系统提示词配置
+        async function loadPromptConfig() {
+            try {
+                const response = await fetch('/api/prompt_config');
+                const data = await response.json();
+                
+                if (data.success && data.config) {
+                    loadPromptConfigData(data.config);
+                    return;
+                }
+            } catch (error) {
+                console.error('从后端加载系统提示词配置失败:', error);
+            }
+            
+            const savedConfig = localStorage.getItem('prompt_config');
+            if (savedConfig) {
+                try {
+                    const config = JSON.parse(savedConfig);
+                    loadPromptConfigData(config);
+                } catch (error) {
+                    console.error('从localStorage加载系统提示词配置失败:', error);
+                    resetPromptConfig();
+                }
+            } else {
+                resetPromptConfig();
+            }
+        }
+        
+        // 加载配置数据到界面
+        function loadPromptConfigData(config) {
+            document.getElementById('roleDefinition').value = config.role_definition || '';
+            
+            // 加载无关判定规则
+            const rulesContainer = document.getElementById('irrelevantRules');
+            rulesContainer.innerHTML = '';
+            if (config.irrelevant_rules && config.irrelevant_rules.length > 0) {
+                config.irrelevant_rules.forEach(rule => {
+                    const ruleDiv = document.createElement('div');
+                    ruleDiv.className = 'rule-item';
+                    ruleDiv.innerHTML = `
+                        <input type="text" class="rule-input">
+                        <button type="button" class="btn-remove" onclick="removeRule(this)">×</button>
+                    `;
+                    const input = ruleDiv.querySelector('.rule-input');
+                    input.value = rule;
+                    rulesContainer.appendChild(ruleDiv);
+                });
+            }
+            
+            // 加载分类标准
+            const categoriesContainer = document.getElementById('categories');
+            categoriesContainer.innerHTML = '';
+            if (config.categories && config.categories.length > 0) {
+                config.categories.forEach(category => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'category-item';
+                    categoryDiv.innerHTML = `
+                        <input type="text" class="category-name">
+                        <input type="text" class="category-desc">
+                        <button type="button" class="btn-remove" onclick="removeCategory(this)">×</button>
+                    `;
+                    const nameInput = categoryDiv.querySelector('.category-name');
+                    const descInput = categoryDiv.querySelector('.category-desc');
+                    nameInput.value = category.name;
+                    descInput.value = category.desc;
+                    categoriesContainer.appendChild(categoryDiv);
+                });
+            }
+            
+            // 加载参考例子
+            const examplesContainer = document.getElementById('examples');
+            examplesContainer.innerHTML = '';
+            if (config.examples && config.examples.length > 0) {
+                config.examples.forEach(example => {
+                    const exampleDiv = document.createElement('div');
+                    exampleDiv.className = 'example-item';
+                    exampleDiv.innerHTML = `
+                        <select class="example-category">
+                            <option value="">选择分类</option>
+                        </select>
+                        <input type="text" class="example-text" placeholder="例子内容">
+                        <button class="btn-remove" onclick="removeExample(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    const textInput = exampleDiv.querySelector('.example-text');
+                    textInput.value = example.text;
+                    examplesContainer.appendChild(exampleDiv);
+                });
+            }
+            
+            updateExampleCategories();
+            
+            // 设置例子的分类选择
+            if (config.examples && config.examples.length > 0) {
+                const exampleItems = document.querySelectorAll('.example-item');
+                config.examples.forEach((example, index) => {
+                    if (exampleItems[index]) {
+                        const select = exampleItems[index].querySelector('.example-category');
+                        select.value = example.category;
+                    }
+                });
+            }
+        }
+        
+        // 监听分类名称变化，更新例子的分类选项
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('category-name')) {
+                updateExampleCategories();
+            }
+        });
+        
+        // 点击模态框背景关闭
+        document.getElementById('promptModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePromptConfig();
+            }
+        });
+        
+        // ESC键关闭模态框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const ollamaModal = document.getElementById('ollamaModal');
+                const promptModal = document.getElementById('promptModal');
+                if (ollamaModal.classList.contains('show')) {
+                    closeOllamaConfig();
+                } else if (promptModal.classList.contains('show')) {
+                    closePromptConfig();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
