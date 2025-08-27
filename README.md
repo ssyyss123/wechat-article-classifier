@@ -31,13 +31,6 @@ pip install -r requirements.txt
 ollama pull qwen3:8b
 ```
 
-### 3. 配置文件
-
-项目会自动创建配置文件：
-- `src/config/app_config.json` - 基础配置（API Token、文件夹路径）
-- `src/config/ollama_config.json` - AI模型配置
-- `src/config/prompt_config.json` - 分类提示词配置
-
 ## 使用方法
 
 ### 启动服务
@@ -132,6 +125,13 @@ Trae Project/
 ├── requirements.txt        # 项目依赖
 └── README.md              # 项目说明
 ```
+
+## 配置文件
+
+项目会自动创建配置文件：
+- `src/config/app_config.json` - 基础配置（API Token、文件夹路径）
+- `src/config/ollama_config.json` - AI模型配置
+- `src/config/prompt_config.json` - 分类提示词配置
 
 ## 注意事项
 
