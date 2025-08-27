@@ -2,6 +2,12 @@
 
 一个智能的微信公众号文章下载和分类系统，支持批量下载公众号文章并使用本地大模型进行智能分类。
 
+## 使用方法
+-本项目的微信公众号下载功能调用的是“wechat-article-exporter”项目的API，该项目包含完善的微信公众号文章下载功能，如果仅需批量下载公众号文章，可以直接前往“https://docs.wxdown.online/”。
+-如果需要批量分类下载功能，请使用本项目，您需要先前往“https://mp.weixin.qq.com/cgi-bin/registermidpage?action=index&lang=zh_CN”注册一个“微信公众账号”
+<img width="1859" height="973" alt="image" src="https://github.com/user-attachments/assets/abbef896-3a10-4567-99ee-7ef5cff4c4d4" />
+
+
 ## 功能特性
 
 ### 🔍 公众号搜索
